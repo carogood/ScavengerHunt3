@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scavenger Hunt — Team C Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --purple: #7C3AED; --yellow: #FFD600; --dark: #111111; --card: #1a1a1a; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--dark); font-family: 'DM Sans', sans-serif; color: #fff; min-height: 100vh; }
+
+  /* SETUP */
+  #setup-overlay { position: fixed; inset: 0; background: #0a0a0a; z-index: 100; overflow-y: auto; display: none; flex-direction: column; align-items: center; padding: 2rem 1rem; }
+  #setup-overlay.open { display: flex; }
+  .setup-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: var(--yellow); text-align: center; margin-bottom: .3rem; }
+  .setup-sub { color: rgba(255,255,255,.4); font-size: .9rem; text-align: center; margin-bottom: 2rem; }
+  .setup-team { background: rgba(255,255,255,.05); border-radius: 14px; padding: 1.2rem; border: 1px solid rgba(255,255,255,.1); width: 100%; max-width: 400px; }
+  .setup-team-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--purple); margin-bottom: 1rem; }
+  .setup-input-row { display: flex; align-items: center; gap: .6rem; margin-bottom: .6rem; }
+  .setup-num { width: 24px; font-family: 'Bebas Neue', sans-serif; font-size: 1rem; color: rgba(255,255,255,.3); text-align: center; }
+  .setup-input { flex: 1; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); border-radius: 8px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: .9rem; padding: .45rem .7rem; }
+  .setup-input:focus { outline: none; border-color: var(--yellow); }
+  .setup-input::placeholder { color: rgba(255,255,255,.25); }
+  .setup-save-btn { margin-top: 2rem; font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: .1em; background: var(--yellow); color: var(--dark); border: none; border-radius: 10px; padding: .9rem 3rem; cursor: pointer; }
+  .setup-cancel { margin-top: .8rem; font-size: .8rem; color: rgba(255,255,255,.25); cursor: pointer; text-decoration: underline; }
+
+  /* HEADER */
+  .header { padding: 1.5rem 1.5rem 1.2rem; text-align: center; position: relative; overflow: hidden; border-bottom: 1px solid rgba(255,255,255,.07); }
+  .header::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(124,58,237,.25) 0%, transparent 70%); top: -200px; left: -100px; }
+  .header::after { content: ''; position: absolute; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(255,214,0,.1) 0%, transparent 70%); top: -150px; right: -80px; }
+  .header-tag { font-family: 'Bebas Neue', sans-serif; font-size: .85rem; letter-spacing: .3em; color: var(--yellow); position: relative; z-index: 1; }
+  .header-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 7vw, 4rem); line-height: .9; color: #fff; position: relative; z-index: 1; margin-top: .3rem; }
+  .header-title span { color: var(--purple); }
+  .live-badge { display: inline-flex; align-items: center; gap: .5rem; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 999px; padding: .35rem 1rem; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-top: .8rem; position: relative; z-index: 1; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+  /* TIMER */
+  .timer-bar { background: rgba(255,255,255,.04); border-bottom: 1px solid rgba(255,255,255,.07); padding: .6rem 1rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+  .timer-display { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--yellow); letter-spacing: .1em; }
+  .timer-label { font-size: .75rem; color: rgba(255,255,255,.35); letter-spacing: .1em; text-transform: uppercase; }
+  .timer-btn { font-family: 'Bebas Neue', sans-serif; font-size: .9rem; padding: .3rem .9rem; border-radius: 6px; border: none; cursor: pointer; background: var(--purple); color: #fff; }
+  .timer-btn.running { background: rgba(255,255,255,.1); color: rgba(255,255,255,.5); }
+
+  /* MAIN */
+  .main { max-width: 600px; margin: 0 auto; padding: 1rem; }
+
+  /* SCORE CARD */
+  .score-card { border-radius: 16px; overflow: hidden; background: var(--card); border: 1px solid rgba(255,255,255,.08); margin-bottom: 1rem; }
+  .score-card-header { padding: 1rem 1.2rem .8rem; display: flex; justify-content: space-between; align-items: flex-start; background: linear-gradient(135deg, rgba(124,58,237,.25), rgba(124,58,237,.08)); border-bottom: 1px solid rgba(124,58,237,.2); }
+  .team-label { font-family: 'Bebas Neue', sans-serif; font-size: .85rem; letter-spacing: .2em; color: rgba(255,255,255,.5); }
+  .team-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; line-height: 1; margin-top: .1rem; color: var(--purple); }
+  .score-big { font-family: 'Bebas Neue', sans-serif; font-size: 3.2rem; line-height: 1; text-align: right; transition: transform .2s; }
+  .score-big.bump { transform: scale(1.2); }
+  .score-big-label { font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.35); text-align: right; }
+  .score-card-body { padding: .9rem 1.2rem; }
+
+  .members-row { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .9rem; min-height: 1.8rem; }
+  .member-bubble { display: flex; align-items: center; gap: .35rem; background: rgba(255,255,255,.07); border-radius: 999px; padding: .25rem .6rem .25rem .3rem; }
+  .member-initial { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: .75rem; flex-shrink: 0; background: var(--purple); color: #fff; }
+  .member-name { font-size: .78rem; font-weight: 600; color: rgba(255,255,255,.7); }
+
+  .progress-row { display: flex; justify-content: space-between; font-size: .72rem; color: rgba(255,255,255,.45); margin-bottom: .35rem; }
+  .prog-track { height: 6px; background: rgba(255,255,255,.08); border-radius: 999px; overflow: hidden; }
+  .prog-fill { height: 100%; background: var(--purple); border-radius: 999px; transition: width .6s ease; width: 0%; }
+  .clue-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: .3rem; margin-top: .8rem; }
+  .clue-pip { aspect-ratio: 1; border-radius: 6px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: .72rem; color: rgba(255,255,255,.25); transition: background .4s, color .3s, transform .3s; }
+  .clue-pip.done { background: var(--purple); color: #fff; transform: scale(1.06); }
+
+  /* FEED */
+  .feed-wrap { background: var(--card); border-radius: 14px; border: 1px solid rgba(255,255,255,.08); overflow: hidden; margin-bottom: 1rem; }
+  .feed-header { padding: .8rem 1.2rem; border-bottom: 1px solid rgba(255,255,255,.07); }
+  .feed-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: rgba(255,255,255,.5); letter-spacing: .1em; }
+  .feed-list { max-height: 260px; overflow-y: auto; }
+  .feed-empty { padding: 1.5rem; text-align: center; color: rgba(255,255,255,.2); font-size: .85rem; }
+  .feed-item { display: flex; gap: .8rem; align-items: flex-start; padding: .75rem 1.2rem; border-bottom: 1px solid rgba(255,255,255,.05); animation: feedIn .3s ease; }
+  @keyframes feedIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--purple); flex-shrink: 0; margin-top: 4px; }
+  .feed-team { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--purple); margin-bottom: .1rem; }
+  .feed-clue { font-size: .88rem; font-weight: 600; color: #fff; }
+  .feed-time { font-size: .7rem; color: rgba(255,255,255,.3); margin-top: .1rem; }
+
+  /* BONUS + PENALTIES */
+  .section-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: rgba(255,255,255,.35); letter-spacing: .15em; margin-bottom: .7rem; }
+  .bonus-row { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 10px; padding: .7rem 1rem; display: flex; align-items: center; gap: .8rem; margin-bottom: .4rem; }
+  .bonus-pts-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; color: var(--yellow); width: 2.8rem; flex-shrink: 0; text-align: center; }
+  .bonus-desc-text { font-size: .8rem; color: rgba(255,255,255,.55); flex: 1; }
+  .bonus-check-btn { width: 30px; height: 30px; border-radius: 7px; border: 2px solid var(--purple); cursor: pointer; font-size: .7rem; font-weight: 700; transition: background .2s, color .2s; background: transparent; color: var(--purple); }
+  .bonus-check-btn.active { background: var(--purple); color: #fff; }
+  .penalty-row { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 10px; padding: .7rem 1rem; display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin-bottom: .4rem; }
+  .penalty-label { font-size: .82rem; color: rgba(255,255,255,.45); flex: 1; min-width: 100px; }
+  .penalty-input { width: 65px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); border-radius: 8px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 1rem; text-align: center; padding: .35rem; }
+  .penalty-input:focus { outline: none; border-color: var(--yellow); }
+  .controls { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: .5rem; margin-bottom: 1rem; }
+  .ctrl-btn { font-family: 'Bebas Neue', sans-serif; font-size: .95rem; letter-spacing: .06em; padding: .55rem 1.2rem; border-radius: 8px; border: none; cursor: pointer; }
+  .ctrl-btn.muted { background: rgba(255,255,255,.07); color: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.1); }
+  .ctrl-btn.yellow { background: var(--yellow); color: var(--dark); }
+  .last-update { text-align: center; font-size: .7rem; color: rgba(255,255,255,.18); padding: 1rem; }
+
+  /* COMPLETION */
+  .completion-banner { background: linear-gradient(135deg, rgba(124,58,237,.2), rgba(124,58,237,.05)); border: 1px solid rgba(124,58,237,.4); border-radius: 14px; padding: 1rem 1.5rem; text-align: center; display: none; margin-bottom: 1rem; }
+  .completion-text { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--yellow); }
+  .completion-detail { font-size: .82rem; color: rgba(255,255,255,.55); margin-top: .2rem; }
+</style>
+</head>
+<body>
+
+<div id="setup-overlay">
+  <div class="setup-title">🟣 Team C Setup</div>
+  <p class="setup-sub">Enter the players — up to 10</p>
+  <div class="setup-team">
+    <div class="setup-team-title">🟣 Team C Players</div>
+    <div id="inputs-c"></div>
+  </div>
+  <button class="setup-save-btn" id="save-btn">Save Names</button>
+  <div class="setup-cancel" id="cancel-btn">Cancel</div>
+</div>
+
+<div class="header">
+  <div class="header-tag">🏘️ Aberdeen West End</div>
+  <div class="header-title">TEAM C<br><span>SCOREBOARD</span></div>
+  <div class="live-badge"><span class="live-dot"></span> Live · Updates in real time</div>
+</div>
+
+<div class="timer-bar">
+  <div class="timer-label">Elapsed</div>
+  <div class="timer-display" id="timer-display">00:00:00</div>
+  <button class="timer-btn" id="timer-btn">Start Timer</button>
+</div>
+
+<div class="main">
+  <div class="score-card">
+    <div class="score-card-header">
+      <div><div class="team-label">Team</div><div class="team-name">🟣 C</div></div>
+      <div><div class="score-big" id="score-big">0</div><div class="score-big-label">pts</div></div>
+    </div>
+    <div class="score-card-body">
+      <div class="members-row" id="members-c"></div>
+      <div class="progress-row"><span id="clue-count">0 / 10 clues</span><span id="pct">0%</span></div>
+      <div class="prog-track"><div class="prog-fill" id="prog"></div></div>
+      <div class="clue-grid">
+        <div class="clue-pip" id="pip-1">1</div><div class="clue-pip" id="pip-2">2</div><div class="clue-pip" id="pip-3">3</div><div class="clue-pip" id="pip-4">4</div><div class="clue-pip" id="pip-5">5</div>
+        <div class="clue-pip" id="pip-6">6</div><div class="clue-pip" id="pip-7">7</div><div class="clue-pip" id="pip-8">8</div><div class="clue-pip" id="pip-9">9</div><div class="clue-pip" id="pip-10">10</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="completion-banner" id="completion-banner">
+    <div class="completion-text">🏆 All Clues Complete!</div>
+    <div class="completion-detail" id="completion-detail"></div>
+  </div>
+
+  <div class="feed-wrap">
+    <div class="feed-header"><div class="feed-title">📡 Live Activity</div></div>
+    <div class="feed-list" id="feed-list">
+      <div class="feed-empty">Waiting for Team C to complete clues…</div>
+    </div>
+  </div>
+
+  <div class="section-title">⭐ Bonus Challenges</div>
+  <div class="bonus-row"><div class="bonus-pts-label">+5</div><div class="bonus-desc-text">Dog photo (ask the owner first!)</div><div><button class="bonus-check-btn" data-idx="0" data-pts="5">C</button></div></div>
+  <div class="bonus-row"><div class="bonus-pts-label">+5</div><div class="bonus-desc-text">Aberdeen FC reference spotted</div><div><button class="bonus-check-btn" data-idx="1" data-pts="5">C</button></div></div>
+  <div class="bonus-row"><div class="bonus-pts-label">+10</div><div class="bonus-desc-text">Tourist guide video filmed</div><div><button class="bonus-check-btn" data-idx="2" data-pts="10">C</button></div></div>
+  <div class="bonus-row"><div class="bonus-pts-label">+5</div><div class="bonus-desc-text">Mossy granite wall found</div><div><button class="bonus-check-btn" data-idx="3" data-pts="5">C</button></div></div>
+  <div class="bonus-row"><div class="bonus-pts-label">+5</div><div class="bonus-desc-text">Stranger waves at camera</div><div><button class="bonus-check-btn" data-idx="4" data-pts="5">C</button></div></div>
+  <div class="bonus-row"><div class="bonus-pts-label">+10</div><div class="bonus-desc-text">Different team member in front each photo</div><div><button class="bonus-check-btn" data-idx="5" data-pts="10">C</button></div></div>
+
+  <div style="height:1rem"></div>
+  <div class="section-title">⏱ Time Penalty</div>
+  <div class="penalty-row"><div class="penalty-label">🟣 Team C — minutes late (every 5 min = –5 pts)</div><input class="penalty-input" type="number" id="late-c" min="0" value="0"></div>
+
+  <div class="controls">
+    <button class="ctrl-btn yellow" id="edit-names-btn">✏️ Edit Player Names</button>
+    <button class="ctrl-btn muted" id="reset-btn">🗑 Reset Scores</button>
+  </div>
+</div>
+
+<div class="last-update" id="last-update">Connecting…</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBhhhqLBTFTw0G1tz7qbXDg53-OaUBeZnc",
+    authDomain: "scavanger-hunt-2026.firebaseapp.com",
+    databaseURL: "https://scavanger-hunt-2026-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "scavanger-hunt-2026",
+    storageBucket: "scavanger-hunt-2026.firebasestorage.app",
+    messagingSenderId: "287138815008",
+    appId: "1:287138815008:web:c7ff7c5e1d2f323c46b045"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const clueTitles = {
+    c1:'Clue 1 · Skim a Stone', c2:'Clue 2 · Sound of the Burn',
+    c3:'Clue 3 · Bridge Explorer Pose', c4:'Clue 4 · Westholme Spot',
+    c5:'Clue 5 · Hill of Rubislaw Meeting', c6:'Clue 6 · Impressive Tree',
+    c7:'Clue 7 · Swing Photo', c8:'Clue 8 · Chute Champion',
+    c9:'Clue 9 · Pond Reflection', c10:'Clue 10 · Own the Gate'
+  };
+
+  let stateC = null;
+  let prevClues = {};
+  let bonus = [false,false,false,false,false,false];
+  const bonusValues = [5,5,10,5,5,10];
+  let feedItems = [];
+  let names = ['Player 1','Player 2','Player 3','Player 4','Player 5'];
+
+  // Timer
+  let timerStart = null, timerInterval = null, timerRunning = false;
+  document.getElementById('timer-btn').addEventListener('click', function() {
+    if (!timerRunning) {
+      timerStart = Date.now();
+      timerInterval = setInterval(function() {
+        const e = Math.floor((Date.now() - timerStart) / 1000);
+        const h = String(Math.floor(e/3600)).padStart(2,'0');
+        const m = String(Math.floor((e%3600)/60)).padStart(2,'0');
+        const s = String(e%60).padStart(2,'0');
+        document.getElementById('timer-display').textContent = h+':'+m+':'+s;
+      }, 1000);
+      timerRunning = true;
+      document.getElementById('timer-btn').textContent = 'Stop';
+      document.getElementById('timer-btn').className = 'timer-btn running';
+    } else {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      document.getElementById('timer-btn').textContent = 'Resume';
+      document.getElementById('timer-btn').className = 'timer-btn';
+    }
+  });
+
+  // Names
+  function renderMembers() {
+    document.getElementById('members-c').innerHTML = names.map(function(n) {
+      return '<div class="member-bubble"><div class="member-initial">'+n.charAt(0).toUpperCase()+'</div><div class="member-name">'+n+'</div></div>';
+    }).join('');
+  }
+
+  function buildInputs() {
+    const container = document.getElementById('inputs-c');
+    container.innerHTML = '';
+    for (let i = 0; i < 10; i++) {
+      const row = document.createElement('div');
+      row.className = 'setup-input-row';
+      row.innerHTML = '<div class="setup-num">'+(i+1)+'</div><input class="setup-input" type="text" id="name-c-'+i+'" placeholder="Player '+(i+1)+'" value="'+(names[i] && names[i] !== 'Player '+(i+1) ? names[i] : '')+'">';
+      container.appendChild(row);
+    }
+  }
+
+  document.getElementById('edit-names-btn').addEventListener('click', function() {
+    buildInputs();
+    document.getElementById('setup-overlay').classList.add('open');
+  });
+  document.getElementById('cancel-btn').addEventListener('click', function() {
+    document.getElementById('setup-overlay').classList.remove('open');
+  });
+  document.getElementById('save-btn').addEventListener('click', function() {
+    names = [];
+    for (let i = 0; i < 10; i++) {
+      const val = document.getElementById('name-c-'+i).value.trim();
+      if (val) names.push(val);
+    }
+    if (names.length === 0) names = ['Player 1'];
+    set(ref(db, 'config_c/names'), { names: names });
+    renderMembers();
+    document.getElementById('setup-overlay').classList.remove('open');
+  });
+
+  // Feed
+  function addFeed(clueId) {
+    const now = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    feedItems.unshift({ title: clueTitles[clueId] || clueId, time: now });
+    if (feedItems.length > 20) feedItems.pop();
+    const list = document.getElementById('feed-list');
+    list.innerHTML = feedItems.map(function(f) {
+      return '<div class="feed-item"><div class="feed-dot"></div><div><div class="feed-team">🟣 Team C</div><div class="feed-clue">✓ '+f.title+'</div><div class="feed-time">'+f.time+'</div></div></div>';
+    }).join('');
+  }
+
+  // Bonus
+  document.querySelectorAll('.bonus-check-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const idx = parseInt(btn.dataset.idx);
+      bonus[idx] = !bonus[idx];
+      btn.classList.toggle('active', bonus[idx]);
+      recalc();
+    });
+  });
+
+  document.getElementById('late-c').addEventListener('input', recalc);
+
+  function bonusTotal() { return bonus.reduce(function(s,v,i){ return s+(v?bonusValues[i]:0); }, 0); }
+
+  function recalc() {
+    const base = stateC ? (stateC.totalScore||0) : 0;
+    const done = stateC ? (stateC.doneCount||0) : 0;
+    const late = parseInt(document.getElementById('late-c').value||0);
+    const total = Math.max(0, base + bonusTotal() + (done===10?20:0) - Math.floor(late/5)*5);
+
+    const el = document.getElementById('score-big');
+    if (parseInt(el.textContent) !== total) { el.classList.add('bump'); setTimeout(function(){ el.classList.remove('bump'); }, 250); }
+    el.textContent = total;
+
+    const pct = Math.round(done/10*100);
+    document.getElementById('prog').style.width = pct+'%';
+    document.getElementById('clue-count').textContent = done+' / 10 clues';
+    document.getElementById('pct').textContent = pct+'%';
+
+    for (let i = 1; i <= 10; i++) {
+      const clues = stateC ? (stateC.clues||{}) : {};
+      document.getElementById('pip-'+i).classList.toggle('done', !!clues['c'+i]);
+    }
+
+    const banner = document.getElementById('completion-banner');
+    if (done === 10) {
+      banner.style.display = 'block';
+      document.getElementById('completion-detail').textContent = 'Total score: ' + total + ' pts' + (done===10?' · Includes 20pt completion bonus!':'');
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  // Firebase
+  onValue(ref(db, 'teamC_v2'), function(snapshot) {
+    const data = snapshot.val() || {};
+    const clues = data.clues || {};
+    Object.keys(clues).forEach(function(id) {
+      if (clues[id] && !prevClues[id]) addFeed(id);
+    });
+    prevClues = Object.assign({}, clues);
+    stateC = data;
+    recalc();
+    document.getElementById('last-update').textContent = 'Last update: ' + new Date().toLocaleTimeString('en-GB');
+  });
+
+  onValue(ref(db, 'config_c/names'), function(snapshot) {
+    const cfg = snapshot.val();
+    if (cfg && cfg.names) names = cfg.names;
+    renderMembers();
+  }, { onlyOnce: true });
+
+  document.getElementById('reset-btn').addEventListener('click', async function() {
+    if (!confirm('Reset Team C scores?')) return;
+    await set(ref(db,'teamC_v2'), { clues:{}, totalScore:0, doneCount:0 });
+    bonus = [false,false,false,false,false,false];
+    document.querySelectorAll('.bonus-check-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('late-c').value = 0;
+    feedItems = []; prevClues = {};
+    document.getElementById('feed-list').innerHTML = '<div class="feed-empty">Waiting for Team C to complete clues…</div>';
+  });
+
+  renderMembers();
+</script>
+</body>
+</html>

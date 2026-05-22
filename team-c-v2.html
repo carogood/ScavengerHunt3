@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team C — Scavenger Hunt</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --accent: #7C3AED; --yellow: #FFD600; --dark: #111; --paper: #F5F0FF; --ink: #1A1A1A; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--paper); font-family: 'DM Sans', sans-serif; color: var(--ink); }
+  .hero { background: var(--dark); padding: 2rem 1.5rem 2.5rem; position: relative; overflow: hidden; text-align: center; }
+  .hero::before { content: ''; position: absolute; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(124,58,237,.4) 0%, transparent 70%); top: -100px; left: -80px; }
+  .hero::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(255,214,0,.2) 0%, transparent 70%); bottom: -60px; right: -60px; }
+  .hero-label { font-family: 'Bebas Neue', sans-serif; font-size: .9rem; letter-spacing: .25em; color: var(--yellow); position: relative; z-index: 1; }
+  .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: 5rem; line-height: .9; color: #fff; position: relative; z-index: 1; margin-top: .3rem; }
+  .hero-title span { color: var(--accent); }
+  .hero-sub { color: rgba(255,255,255,.55); font-size: .9rem; margin-top: .8rem; position: relative; z-index: 1; }
+  .hero-badge { display: inline-block; margin-top: 1.2rem; background: var(--accent); color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: .08em; padding: .5rem 1.5rem; border-radius: 999px; position: relative; z-index: 1; }
+  .rules-strip { background: var(--yellow); padding: .9rem 1.5rem; font-size: .82rem; font-weight: 700; color: var(--dark); display: flex; gap: 1.2rem; flex-wrap: wrap; justify-content: center; text-align: center; }
+  .clues { padding: 1.2rem 1rem 0; max-width: 500px; margin: 0 auto; }
+  .clue-card { background: #fff; border-radius: 14px; margin-bottom: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,.07); overflow: hidden; border-left: 5px solid var(--accent); transition: opacity .3s; }
+  .clue-inner { padding: 1rem 1.1rem; display: flex; gap: .9rem; align-items: flex-start; }
+  .clue-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: var(--accent); line-height: 1; flex-shrink: 0; width: 2rem; text-align: center; }
+  .clue-pts { font-size: .7rem; font-weight: 700; letter-spacing: .1em; color: var(--accent); text-transform: uppercase; margin-bottom: .25rem; }
+  .clue-text { font-size: .95rem; line-height: 1.45; font-weight: 500; }
+  .clue-hint { margin-top: .4rem; font-size: .8rem; color: #999; font-style: italic; }
+  .clue-check { display: flex; align-items: center; gap: .5rem; padding: .65rem 1.1rem .65rem 3.9rem; background: #f5f0ff; border-top: 1px solid #e8e0ff; font-size: .82rem; font-weight: 600; color: #aaa; cursor: pointer; user-select: none; }
+  .clue-check input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+  .clue-card.done { opacity: .55; }
+  .clue-card.done .clue-text { text-decoration: line-through; }
+  .bonus-section { padding: 1.5rem 1rem; max-width: 500px; margin: 0 auto; }
+  .bonus-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--dark); margin-bottom: .9rem; }
+  .bonus-card { background: var(--yellow); border-radius: 12px; padding: .9rem 1.1rem; margin-bottom: .75rem; border-left: 5px solid var(--dark); display: flex; gap: .9rem; align-items: flex-start; }
+  .bonus-pts { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
+  .bonus-desc { font-size: .85rem; font-weight: 600; padding-top: .2rem; }
+  .progress-bar-wrap { position: sticky; top: 0; z-index: 10; background: #fff; padding: .6rem 1rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); display: flex; align-items: center; gap: .8rem; }
+  .progress-label { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; color: var(--accent); white-space: nowrap; }
+  .progress-track { flex: 1; height: 8px; background: #e8e0ff; border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; width: 0%; }
+  .progress-count { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; color: var(--dark); white-space: nowrap; }
+  .sync-status { font-size: .75rem; text-align: center; padding: .5rem; color: #bbb; min-height: 1.6rem; }
+  .sync-status.synced { color: #7C3AED; }
+  .sync-status.error { color: #FF5C1A; }
+  .footer { text-align: center; padding: 2rem 1rem; color: #bbb; font-size: .8rem; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-label">🏘️ Aberdeen West End · Scavenger Hunt</div>
+  <div class="hero-title">TEAM<br><span>C</span></div>
+  <div class="hero-sub">10 clues · ~90 min · Photo proof required for every clue</div>
+  <div class="hero-badge">🟣 Purple Team</div>
+</div>
+<div class="rules-strip">
+  <span>📸 Photo = proof</span>
+  <span>⏱ Back on time or lose pts</span>
+  <span>🐾 Stay together at all times</span>
+  <span>🚫 Don't cross Anderson Drive</span>
+</div>
+<div class="progress-bar-wrap">
+  <div class="progress-label">Progress</div>
+  <div class="progress-track"><div class="progress-fill" id="prog-fill"></div></div>
+  <div class="progress-count" id="prog-count">0 / 10</div>
+</div>
+<div id="sync-status" class="sync-status">Connecting to scoreboard…</div>
+<div class="clues">
+
+  <div class="clue-card" id="c1">
+    <div class="clue-inner"><div class="clue-num">1</div><div class="clue-body">
+      <div class="clue-pts">10 pts · Photo required</div>
+      <div class="clue-text">Find the burn (stream) running along Angusfield Avenue. Everyone must skim a stone or throw a leaf in and watch it float. Photo of the whole group doing it.</div>
+      <div class="clue-hint">Hint: Look along Angusfield Avenue for the burn running alongside</div>
+    </div></div>
+    <label class="clue-check"><input type="checkbox" id="cb-c1" onchange="tick(this,'c1',10)"> Mark as done ✓</label>
+  </div>
+
+  <div class="clue-card" id="c2">
+    <div class="clue-inner"><div class="clue-num">2</div><div class="clue-body">
+      <div class="clue-pts">10 pts · Video required</div>
+      <div class="clue-text">Still at the burn — find a fast flowing section. Record a 5-second video of the sound. No talking allowed, just the water!</div>
+    </div></div>
+    <label class="clue-check"><input type="checkbox" id="cb-c2" onchange="tick(this,'c2',10)"> Mark as done ✓</label>
+  </div>
+
+  <div class="clue-card" id="c3">
+    <div class="clue-inner"><div class="clue-num">3</div><div class="clue-body">
+      <div class="clue-pts">10 pts · Photo required</div>
+      <div class="clue-text">Find the bridge over the burn at Angusfield Avenue. Photograph the whole team on the bridge — everyone strikes their most dramatic "explorer" pose.</div>
+    </div></div>
+    <label class="clue-check"><input type="checkbox" id="cb-c3" onchange="tick(this,'c3',10)"> Mark as done ✓</label>
+  </div>
+
+  <div class="clue-card" id="c4">
+    <div class="clue-inner"><div class="clue-num">4</div><div class="clue-body">
+      <div class="clue-pts">10 pts · Photo required</div>
+      <div class="clue-text">Head to Westholme and spot something interesting on the street — a nameplate, an unusual gate, a garden feature. Photograph it and be ready to explain what you found!</div>
+      <div class="clue-hint">Hint: Look out for house nameplates and fancy gates</div>
+    </div></div>
+    <label class="clue-check"><input type="checkbox" id="cb-c4" onchange="tick(this,'c4',10)"> Mark as done ✓</label>
+  </div>
+
+  <div class="clue-card" id="c5">
+    <div class="clue-inner"><div class="clue-num">5</div><div class="clue-body">
+      <div class="clue-pts">10 pts · Photo required</div>
+      <div class="clue-text">Find the offices at Hill of Rubislaw and photograph the team outside. Everyone pretends they're late for a very important meeting — best panicked face wins!</div>
+      <div class="clue-hint">Hint: Head to Hill of Rubislaw — look for the big modern offices</div>
+    </div></div>
+    <label class="clue-check"><input type="checkbox" id="cb-c5" onchange="tick(this,'c5',10)"> Mark as done ✓</label>
+  </div>
+
+  <div class="clue-card" id="c6">
+    <div class="clue-inner"><div class="clue-num">6</div><div class="clue-body">
+      <div class="clue-pts">10 pts · Photo required</div>
+      <div class="clue-text">Still near Hill of Rubislaw — find the most impressive tree you can see. Photograph the whole team next to it with the tallest person at the front.</div>
+    </div></div>
+    <label class="clue-check"><input type="checkbox" id="cb-c6" onchange="tick(this,'c6',10)"> Mark as done ✓</label>
+  </div>
+
+  <div class="clue-card" id="c7">
+    <div class="clue-inner"><div class="clue-num">7</div><div class="clue-body">
+      <div class="clue-pts">10 pts · Photo required</div>
+      <div class="clue-text">Head to Johnston Gardens and find the play area. Get a team photo with everyone on or around the swing — someone must be mid-swing for the photo to count!</div>
+      <div class="clue-hint">Hint: The play area is inside Johnston Gardens</div>
+    </div></div>
+    <label class="clue-check"><input type="checkbox" id="cb-c7" onchange="tick(this,'c7',10)"> Mark as done ✓</label>
+  </div>
+
+  <div class="clue-card" id="c8">
+    <div class="clue-inner"><div class="clue-num">8</div><div class="clue-body">
+      <div class="clue-pts">10 pts · Photo required</div>
+      <div class="clue-text">Still at the play area — everyone gets one go on the chute. Last one down wins! Photo of the winner at the bottom.</div>
+    </div></div>
+    <label class="clue-check"><input type="checkbox" id="cb-c8" onchange="tick(this,'c8',10)"> Mark as done ✓</label>
+  </div>
+
+  <div class="clue-card" id="c9">
+    <div class="clue-inner"><div class="clue-num">9</div><div class="clue-body">
+      <div class="clue-pts">10 pts · Photo required</div>
+      <div class="clue-text">Find the pond in Johnston Gardens and get the whole team reflected in the water. Most creative reflection wins!</div>
+    </div></div>
+    <label class="clue-check"><input type="checkbox" id="cb-c9" onchange="tick(this,'c9',10)"> Mark as done ✓</label>
+  </div>
+
+  <div class="clue-card" id="c10">
+    <div class="clue-inner"><div class="clue-num">10</div><div class="clue-body">
+      <div class="clue-pts">10 pts · Photo required</div>
+      <div class="clue-text">Final challenge! Find a quiet residential street nearby. Everyone picks a gate and pretends they own the house behind it. Most convincing pose wins!</div>
+    </div></div>
+    <label class="clue-check"><input type="checkbox" id="cb-c10" onchange="tick(this,'c10',10)"> Mark as done ✓</label>
+  </div>
+
+</div>
+<div class="bonus-section">
+  <div class="bonus-title">⭐ Bonus Challenges</div>
+  <div class="bonus-card"><div class="bonus-pts">+5</div><div class="bonus-desc">Spot a dog being walked — get a photo with it (ask the owner first!)</div></div>
+  <div class="bonus-card"><div class="bonus-pts">+5</div><div class="bonus-desc">Find something that references Aberdeen FC (the Dons) — a car sticker, scarf, anything red</div></div>
+  <div class="bonus-card"><div class="bonus-pts">+10</div><div class="bonus-desc">Film a 10-second mock "Aberdeen tourist guide" video at Johnston Gardens</div></div>
+  <div class="bonus-card"><div class="bonus-pts">+5</div><div class="bonus-desc">Find a granite wall with moss or plants growing out of it</div></div>
+  <div class="bonus-card"><div class="bonus-pts">+5</div><div class="bonus-desc">Get a stranger to wave at the camera (ask nicely!)</div></div>
+  <div class="bonus-card"><div class="bonus-pts">+10</div><div class="bonus-desc">Every clue photo has a different team member "in front" — prove it by reviewing your photos!</div></div>
+</div>
+<div class="footer">🟣 Team C · Aberdeen West End Scavenger Hunt · Good luck!</div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBhhhqLBTFTw0G1tz7qbXDg53-OaUBeZnc",
+    authDomain: "scavanger-hunt-2026.firebaseapp.com",
+    databaseURL: "https://scavanger-hunt-2026-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "scavanger-hunt-2026",
+    storageBucket: "scavanger-hunt-2026.firebasestorage.app",
+    messagingSenderId: "287138815008",
+    appId: "1:287138815008:web:c7ff7c5e1d2f323c46b045"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const teamRef = ref(db, 'teamC_v2');
+
+  let state = { clues: {}, totalScore: 0, doneCount: 0 };
+  let isSaving = false;
+  const statusEl = document.getElementById('sync-status');
+
+  function setStatus(msg, cls) {
+    statusEl.textContent = msg;
+    statusEl.className = 'sync-status ' + (cls || '');
+    if (cls === 'synced') setTimeout(() => { statusEl.textContent = ''; statusEl.className = 'sync-status'; }, 2500);
+  }
+
+  function updateProgress() {
+    document.getElementById('prog-fill').style.width = (state.doneCount / 10 * 100) + '%';
+    document.getElementById('prog-count').textContent = state.doneCount + ' / 10';
+  }
+
+  function applyStateToUI() {
+    const clues = state.clues || {};
+    for (let i = 1; i <= 10; i++) {
+      const id = 'c' + i;
+      const card = document.getElementById(id);
+      const cb = document.getElementById('cb-' + id);
+      if (!card || !cb) continue;
+      if (clues[id]) { card.classList.add('done'); cb.checked = true; }
+      else { card.classList.remove('done'); cb.checked = false; }
+    }
+    updateProgress();
+  }
+
+  onValue(teamRef, (snapshot) => {
+    if (isSaving) return;
+    const data = snapshot.val();
+    if (data) { state = data; if (!state.clues) state.clues = {}; applyStateToUI(); }
+    setStatus('✓ Connected', 'synced');
+  }, () => setStatus('⚠ Connection error', 'error'));
+
+  window.tick = function(cb, id, pts) {
+    if (!state.clues) state.clues = {};
+    const card = document.getElementById(id);
+    if (cb.checked) {
+      card.classList.add('done');
+      if (!state.clues[id]) { state.clues[id] = true; state.totalScore = (state.totalScore || 0) + pts; state.doneCount = (state.doneCount || 0) + 1; }
+    } else {
+      card.classList.remove('done');
+      if (state.clues[id]) { state.clues[id] = false; state.totalScore = Math.max(0, (state.totalScore || 0) - pts); state.doneCount = Math.max(0, (state.doneCount || 0) - 1); }
+    }
+    updateProgress();
+    setStatus('Syncing…', '');
+    isSaving = true;
+    set(teamRef, state)
+      .then(() => { isSaving = false; setStatus('✓ Score synced!', 'synced'); })
+      .catch(() => { isSaving = false; setStatus('⚠ Sync failed', 'error'); });
+  };
+</script>
+</body>
+</html>
